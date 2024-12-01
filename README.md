@@ -8,24 +8,41 @@ Tested on the latest Fedora.
 
 ### Prerequisites
 
-You need to have the KVM hypervisor installed, along with a few other packages:
+You need to have the KVM hypervisor installed, along with a few other packages (naming of packages can differ on other distributions):
 
 - genisoimage or mkisofs
 - virt-install
 - libguestfs-tools-c
 - qemu-img
 - libvirt-client
+- libosinfo
 
 To install the dependencies, run:
 
+- Fedora example:
+
 ```
-sudo dnf -y install genisoimage virt-install libguestfs-tools-c qemu-img libvirt-client wget
+sudo dnf -y install genisoimage virt-install libguestfs-tools-c qemu-img libvirt-client wget libosinfo
+```
+
+- Ubuntu example:
+
+```
+sudo apt install -y genisoimage virtinst libguestfs-tools qemu-utils libvirt-clients wget libosinfo-bin
 ```
 
 If you want to resolve guests by their hostnames, install the `libvirt-nss` package:
 
+- Fedora example:
+
 ```
 sudo dnf -y install libvirt-nss
+```
+
+- Ubuntu example:
+
+```
+sudo apt install -y libnss-libvirt
 ```
 
 Then, add `libvirt` and `libvirt_guest` to list of **hosts** databases in
@@ -60,51 +77,60 @@ COMMANDS
 ```
 $ kvm-install-vm help create
 NAME
-    kvm-install-vm create [OPTIONS] VMNAME
+    kvm-install-vm create [COMMANDS] [OPTIONS] VMNAME
 
 DESCRIPTION
     Create a new guest domain.
 
+COMMANDS
+    help - show this help
+
 OPTIONS
-    -a          Autostart           (default: false)
-    -b          Bridge              (default: virbr0)
-    -c          Number of vCPUs     (default: 1)
-    -d          Disk Size (GB)      (default: 10)
-    -D          DNS Domain          (default: example.local)
-    -f          CPU Model / Feature (default: host)
-    -g          Graphics type       (default: spice)
+    -a          Autostart             (default: false)
+    -b          Bridge                (default: virbr0)
+    -c          Number of vCPUs       (default: 1)
+    -d          Disk Size (GB)        (default: 10)
+    -D          DNS Domain            (default: example.local)
+    -f          CPU Model / Feature   (default: host)
+    -g          Graphics type         (default: spice)
     -h          Display help
     -i          Custom QCOW2 Image
-    -k          SSH Public Key      (default: $HOME/.ssh/id_rsa.pub)
-    -l          Location of Images  (default: $HOME/virt/images)
-    -L          Location of VMs     (default: $HOME/virt/vms)
-    -m          Memory Size (MB)    (default: 1024)
-    -M          Mac address         (default: auto-assigned)
-    -p          Console port        (default: auto)
+    -k          SSH Public Key        (default: $HOME/.ssh/id_rsa.pub)
+    -l          Location of Images    (default: $HOME/virt/images)
+    -L          Location of VMs       (default: $HOME/virt/vms)
+    -m          Memory Size (MB)      (default: 1024)
+    -M          Mac address           (default: auto-assigned)
+    -p          Console port          (default: auto)
     -s          Custom shell script
-    -t          Linux Distribution  (default: centos7)
-    -T          Timezone            (default: US/Eastern)
-    -u          Custom user         (defualt: $USER)
+    -t          Linux Distribution    (default: centos8)
+    -T          Timezone              (default: US/Eastern)
+    -u          Custom user           (default: $USER)
+    -y          Assume yes to prompts (default: false)
+    -n          Assume no to prompts  (default: false)
     -v          Be verbose
 
 DISTRIBUTIONS
     NAME            DESCRIPTION                         LOGIN
     amazon2         Amazon Linux 2                      ec2-user
+    centos8         CentOS 8                            centos
     centos7         CentOS 7                            centos
     centos7-atomic  CentOS 7 Atomic Host                centos
     centos6         CentOS 6                            centos
     debian9         Debian 9 (Stretch)                  debian
-    fedora27        Fedora 27                           fedora
-    fedora27-atomic Fedora 27 Atomic Host               fedora
-    fedora28        Fedora 28                           fedora
-    fedora28-atomic Fedora 28 Atomic Host               fedora
+    debian10        Debian 10 (Buster)                  debian
+    fedora29        Fedora 29                           fedora
+    fedora29-atomic Fedora 29 Atomic Host               fedora
+    fedora30        Fedora 30                           fedora
     fedora31        Fedora 31                           fedora
+    fedora32        Fedora 32                           fedora
+    opensuse15      OpenSUSE Leap 15.2                  opensuse
     ubuntu1604      Ubuntu 16.04 LTS (Xenial Xerus)     ubuntu
     ubuntu1804      Ubuntu 18.04 LTS (Bionic Beaver)    ubuntu
+    ubuntu2004      Ubuntu 20.04 LTS (Focal Fossa)      ubuntu
 
 EXAMPLES
     kvm-install-vm create foo
-        Create VM with the default parameters: CentOS 7, 1 vCPU, 1GB RAM, 10GB
+        Create VM with the default parameters: CentOS 8, 1 vCPU, 1GB RAM, 10GB
         disk capacity.
 
     kvm-install-vm create -c 2 -m 2048 -d 20 foo
@@ -116,10 +142,6 @@ EXAMPLES
 
     kvm-install-vm create -T UTC foo
         Create a default VM with UTC timezone.
-
-    kvm-install-vm create -s ~/script.sh -g vnc -u bar foo
-        Create a VM with a custom script included in user-data, a graphical
-        console accessible over VNC, and a user named 'bar'.
 ```
 
 #### Deleting a Guest Domain
@@ -190,6 +212,20 @@ Options are evaluated in the following order:
    same host and its hostname will likely not resolve until the old lease
    expires.
 
+3. The Operating System information database (osinfo-db) provides Operating
+   System specific information needed to create guests for the various systems
+   supported by `kvm-install-vm`.  The database files provided by your package
+   manager may be out of date and not provide definitions for recent Operating
+   System versions. If you encounter the following error message, you may need
+   to update the database files:
+   `ERR: Unknown OS variant '<name>'. Please update your osinfo-db.`
+   If you have already updated your system, and the osinfo-db is still to old,
+   then you can use the `osinfo-db-import` tool with the `--local` option, to
+   install an up-to-date database in your home directory which will not
+   conflict with your package manager files. The `osinfo-db-import` tool is
+   provided by the rpm/deb packages `osinfo-db-tools`.
+   See https://libosinfo.org/download for more information.
+
 ### Testing
 
 Tests are written using [Bats](https://github.com/sstephenson/bats).  To
@@ -209,3 +245,19 @@ things like:
 - anything else you would do with a VM
 
 ...then this wrapper could be useful for you.
+
+### Troubleshooting
+
+If you will encounter something similar:
+
+```
+ERR: Unknown OS variant 'fedora31'. Please update your osinfo-db.  See https://libosinfo.org/download for more information.
+```
+
+Then you need to update the DB in libosinfo.
+Check the url and select the latest date ( https://releases.pagure.org/libosinfo/ )
+
+```
+wget -O "/tmp/osinfo-db.tar.xz" https://releases.pagure.org/libosinfo/osinfo-db-20200515.tar.xz
+sudo osinfo-db-import --local "/tmp/osinfo-db.tar.xz"
+```
