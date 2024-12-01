@@ -61,7 +61,7 @@ function usage_subcommand ()
             printf "    -M          Mac address           (default: auto-assigned)\n"
             printf "    -p          Console port          (default: auto)\n"
             printf "    -s          Custom shell script\n"
-            printf "    -t          Linux Distribution    (default: centos7)\n"
+            printf "    -t          Linux Distribution    (default: centos8)\n"
             printf "    -T          Timezone              (default: US/Eastern)\n"
             printf "    -u          Custom user           (default: $USER)\n"
             printf "    -y          Assume yes to prompts (default: false)\n"
@@ -71,20 +71,30 @@ function usage_subcommand ()
             printf "DISTRIBUTIONS\n"
             printf "    NAME            DESCRIPTION                         LOGIN\n"
             printf "    amazon2         Amazon Linux 2                      ec2-user\n"
+            printf "    centos8         CentOS 8                            centos\n"
             printf "    centos7         CentOS 7                            centos\n"
             printf "    centos7-atomic  CentOS 7 Atomic Host                centos\n"
             printf "    centos6         CentOS 6                            centos\n"
             printf "    debian9         Debian 9 (Stretch)                  debian\n"
+            printf "    debian10        Debian 10 (Buster)                  debian\n"
             printf "    fedora29        Fedora 29                           fedora\n"
             printf "    fedora29-atomic Fedora 29 Atomic Host               fedora\n"
             printf "    fedora30        Fedora 30                           fedora\n"
             printf "    fedora31        Fedora 31                           fedora\n"
+            printf "    fedora32        Fedora 32                           fedora\n"
+            printf "    fedora33        Fedora 33                           fedora\n"
+            printf "    fedora34        Fedora 34                           fedora\n"
+            printf "    opensuse15      OpenSUSE Leap 15.2                  opensuse\n"
             printf "    ubuntu1604      Ubuntu 16.04 LTS (Xenial Xerus)     ubuntu\n"
             printf "    ubuntu1804      Ubuntu 18.04 LTS (Bionic Beaver)    ubuntu\n"
-            printf "\n"
+            printf "    ubuntu2004      Ubuntu 20.04 LTS (Focal Fossa)      ubuntu\n"
+            printf "    ubuntu2204      Ubuntu 22.04 LTS (Jammy Jellyfish)  ubuntu\n"
+            printf "    ubuntu2404      Ubuntu 24.04 LTS (Noble Numbat)     ubuntu\n"
+            printf "    rocky8.5         Rocky Linux                         rocky\n"
+	    printf "\n"
             printf "EXAMPLES\n"
             printf "    $prog create foo\n"
-            printf "        Create VM with the default parameters: CentOS 7, 1 vCPU, 1GB RAM, 10GB\n"
+            printf "        Create VM with the default parameters: CentOS 8, 1 vCPU, 1GB RAM, 10GB\n"
             printf "        disk capacity.\n"
             printf "\n"
             printf "    $prog create -c 2 -m 2048 -d 20 foo\n"
@@ -256,13 +266,13 @@ function delete_vm ()
             || yellow "(Domain is not running.)"
 
         outputn "Undefining ${VMNAME} domain"
-        virsh undefine --managed-save ${VMNAME} > /dev/null 2>&1 \
+        virsh undefine --managed-save --snapshots-metadata ${VMNAME} > /dev/null 2>&1 \
             && ok \
             || die "Could not undefine domain."
     else
         output "Domain ${VMNAME} does not exist"
     fi
-    
+
     [[ -d ${VMDIR}/${VMNAME} ]] && DISKDIR=${VMDIR}/${VMNAME} || DISKDIR=${IMAGEDIR}/${VMNAME}
     [ -d $DISKDIR ] \
         && outputn "Deleting ${VMNAME} files" \
@@ -293,6 +303,14 @@ function fetch_images ()
             IMAGE_URL=https://cdn.amazonlinux.com/os-images/2.0.20190313/kvm
             DISK_FORMAT=qcow2
             LOGIN_USER=ec2-user
+            ;;
+        centos8)
+            QCOW=CentOS-8-GenericCloud-8.1.1911-20200113.3.x86_64.qcow2
+            OS_TYPE="linux"
+            OS_VARIANT="centos8"
+            IMAGE_URL=https://cloud.centos.org/centos/8/x86_64/images
+            DISK_FORMAT=qcow2
+            LOGIN_USER=centos
             ;;
         centos7)
             QCOW=CentOS-7-x86_64-GenericCloud.qcow2
@@ -335,6 +353,14 @@ function fetch_images ()
             DISK_FORMAT=qcow2
             LOGIN_USER=debian
             ;;
+        debian10)
+            QCOW=debian-10-openstack-amd64.qcow2
+            OS_TYPE="linux"
+            OS_VARIANT="debian10"
+            IMAGE_URL=https://cdimage.debian.org/cdimage/openstack/current-10
+            DISK_FORMAT=qcow2
+            LOGIN_USER=debian
+            ;;
         fedora29)
           QCOW=Fedora-Cloud-Base-29-1.2.x86_64.qcow2
           OS_TYPE="linux"
@@ -367,6 +393,30 @@ function fetch_images ()
           DISK_FORMAT=qcow2
           LOGIN_USER=fedora
           ;;
+       fedora32)
+          QCOW=Fedora-Cloud-Base-32-1.6.x86_64.qcow2
+          OS_TYPE="linux"
+          OS_VARIANT="fedora32"
+          IMAGE_URL=https://download.fedoraproject.org/pub/fedora/linux/releases/32/Cloud/x86_64/images
+          DISK_FORMAT=qcow2
+          LOGIN_USER=fedora
+          ;;
+        fedora33)
+            QCOW=Fedora-Cloud-Base-33-1.2.x86_64.qcow2
+            OS_TYPE="linux"
+            OS_VARIANT="fedora33"
+            IMAGE_URL=https://download.fedoraproject.org/pub/fedora/linux/releases/33/Cloud/x86_64/images
+            DISK_FORMAT=qcow2
+            LOGIN_USER=fedora
+            ;;
+        fedora34)
+            QCOW=Fedora-Cloud-Base-34-1.2.x86_64.qcow2
+            OS_TYPE="linux"
+            OS_VARIANT="fedora34"
+            IMAGE_URL=https://download.fedoraproject.org/pub/fedora/linux/releases/34/Cloud/x86_64/images
+            DISK_FORMAT=qcow2
+            LOGIN_USER=fedora
+            ;;
         ubuntu1604)
             QCOW=ubuntu-16.04-server-cloudimg-amd64-disk1.img
             OS_TYPE="linux"
@@ -382,6 +432,46 @@ function fetch_images ()
             IMAGE_URL=https://cloud-images.ubuntu.com/releases/18.04/release
             DISK_FORMAT=qcow2
             LOGIN_USER=ubuntu
+            ;;
+        ubuntu2004)
+            QCOW=ubuntu-20.04-server-cloudimg-amd64.img
+            OS_TYPE="linux"
+            OS_VARIANT="ubuntu20.04"
+            IMAGE_URL=https://cloud-images.ubuntu.com/releases/20.04/release
+            DISK_FORMAT=qcow2
+            LOGIN_USER=ubuntu
+            ;;
+        ubuntu2204)
+            QCOW=ubuntu-22.04-server-cloudimg-amd64.img
+            OS_TYPE="linux"
+            OS_VARIANT="ubuntu22.04"
+            IMAGE_URL=https://cloud-images.ubuntu.com/releases/22.04/release
+            DISK_FORMAT=qcow2
+            LOGIN_USER=ubuntu
+            ;;
+        ubuntu2404)
+            QCOW=ubuntu-24.04-server-cloudimg-amd64.img
+            OS_TYPE="linux"
+            OS_VARIANT="ubuntu24.04"
+            IMAGE_URL=https://cloud-images.ubuntu.com/releases/24.04/release
+            DISK_FORMAT=qcow2
+            LOGIN_USER=ubuntu
+            ;;
+        opensuse15)
+            QCOW=openSUSE-Leap-15.2-OpenStack.x86_64.qcow2
+            OS_TYPE="linux"
+            OS_VARIANT="opensuse15.0"
+            IMAGE_URL=https://download.opensuse.org/repositories/Cloud:/Images:/Leap_15.2/images
+            DISK_FORMAT=qcow2
+            LOGIN_USER=opensuse
+            ;;
+	 rocky85)
+            QCOW=Rocky-8-GenericCloud-8.5-20211114.2.x86_64.qcow2
+            OS_TYPE="linux"
+            OS_VARIANT="rocky8.5"
+            IMAGE_URL=https://dl.rockylinux.org/pub/rocky/8.5/images
+            DISK_FORMAT=qcow2
+            LOGIN_USER=rocky
             ;;
         *)
             die "${DISTRO} not a supported OS.  Run 'kvm-install-vm create help'."
@@ -437,6 +527,15 @@ function check_ssh_key ()
     fi
 }
 
+function check_os_variant ()
+{
+    if [[ ${OS_VARIANT} != auto ]]; then
+        osinfo-query os short-id=${OS_VARIANT} >/dev/null \
+            || die "Unknown OS variant '${OS_VARIANT}'. Please update your osinfo-db. "\
+                   "See https://libosinfo.org/download for more information."
+    fi
+}
+
 function domain_exists ()
 {
     virsh dominfo "${1}" > /dev/null 2>&1 \
@@ -454,10 +553,10 @@ function storpool_exists ()
 function set_sudo_group ()
 {
     case "${DISTRO}" in
-        centos?|fedora??|*-atomic|amazon? )
+        centos*|fedora*|rocky*|*-atomic|amazon*|opensuse* )
             SUDOGROUP="wheel"
             ;;
-        ubuntu*|debian? )
+        ubuntu*|debian* )
             SUDOGROUP="sudo"
             ;;
         *)
@@ -472,7 +571,7 @@ function set_cloud_init_remove ()
         centos6 )
             CLOUDINITDISABLE="chkconfig cloud-init off"
             ;;
-        centos7|amazon?|fedora??|ubuntu*|debian? )
+        centos8|centos7|amazon*|fedora*|rocky*|ubuntu*|debian*|opensuse* )
             CLOUDINITDISABLE="systemctl disable cloud-init.service"
             ;;
         *-atomic)
@@ -485,7 +584,7 @@ function set_network_restart_cmd ()
 {
     case "${DISTRO}" in
         centos6 )           NETRESTART="service network stop && service network start" ;;
-        ubuntu*|debian?)    NETRESTART="systemctl stop networking && systemctl start networking" ;;
+        ubuntu*|debian*)    NETRESTART="systemctl stop networking && systemctl start networking" ;;
         *)                  NETRESTART="systemctl stop network && systemctl start network" ;;
     esac
 }
@@ -582,25 +681,27 @@ _EOF_
 
     outputn "Copying cloud image ($(basename ${IMAGE}))"
     DISK=${VMNAME}.qcow2
-    cp $IMAGE $DISK && ok
+    qemu-img create -q -f qcow2 -F qcow2 -b $IMAGE $DISK && ok
     if $RESIZE_DISK
     then
         outputn "Resizing the disk to $DISK_SIZE"
         # Workaround to prevent virt-resize from renumbering partitions and breaking grub
         # See https://bugzilla.redhat.com/show_bug.cgi?id=1472039
         # Ubuntu will automatically grow the partition to the new size on its first boot
-        if [[ "$DISTRO" = "ubuntu1804" ]] || [[ "$DISTRO" = "amazon2" ]]
-        then
+        case "$DISTRO" in
+        ubuntu*|amazon2)
             qemu-img resize $DISK $DISK_SIZE &>> ${VMNAME}.log \
                 && ok \
                 || die "Could not resize disk."
-        else
+            ;;
+        *)
             qemu-img create -f qcow2 \
                 -o preallocation=metadata $DISK.new $DISK_SIZE &>> ${VMNAME}.log \
                 && virt-resize --quiet --expand /dev/sda1 $DISK $DISK.new &>> ${VMNAME}.log \
                 && (mv $DISK.new $DISK && ok) \
                 || die "Could not resize disk."
-        fi
+            ;;
+        esac
     fi
 
     # Create CD-ROM ISO with cloud-init config
@@ -643,7 +744,6 @@ _EOF_
     # Assemble CI ISO disk parameters.
     CI_ISO_PARAMS="$(join ',' \
         ${CI_ISO} \
-        $(param device ${CI_ISO_DEVICE}) \
         ${CI_ISO_EXTRA})"
 
     # Omit the --graphics option to auto-detect.
@@ -694,16 +794,18 @@ _EOF_
     fi
 
     # Eject cdrom
-    virsh change-media ${VMNAME} --path ${VMDIR}/${VMNAME}/${CI_ISO} --eject --config &>> ${VMNAME}.log
+    virsh detach-disk --domain ${VMNAME} ${VMDIR}/${VMNAME}/${CI_ISO} --config &>> ${VMNAME}.log
 
     # Remove the unnecessary cloud init files
     outputn "Cleaning up cloud-init files"
     rm -f $USER_DATA $META_DATA $CI_ISO && ok
 
+    MAC=$(virsh dumpxml ${VMNAME} | awk -F\' '/mac address/ {print $2}')
+    output "MAC address: ${MAC}"
+
     if [ -f "/var/lib/libvirt/dnsmasq/${BRIDGE}.status" ]
     then
         outputn "Waiting for domain to get an IP address"
-        MAC=$(virsh dumpxml ${VMNAME} | awk -F\' '/mac address/ {print $2}')
         while true
         do
             IP=$(grep -B1 $MAC /var/lib/libvirt/dnsmasq/$BRIDGE.status | head \
@@ -784,7 +886,7 @@ function set_defaults ()
     VMDIR=${HOME}/virt/vms          # Directory to store virtual machines
     BRIDGE=virbr0                   # Hypervisor bridge
     PUBKEY=""                       # SSH public key
-    DISTRO=centos7                  # Distribution
+    DISTRO=centos8                  # Distribution
     MACADDRESS=""                   # MAC Address
     PORT=-1                         # Console port
     TIMEZONE=US/Eastern             # Timezone
@@ -801,7 +903,6 @@ function set_defaults ()
     NETWORK_EXTRA=""
     DISK_BUS=virtio
     DISK_EXTRA=""
-    CI_ISO_DEVICE=cdrom
     CI_ISO_EXTRA=""
     GRAPHICS_LISTEN=localhost
     GRAPHICS_EXTRA=""
@@ -891,6 +992,9 @@ function create ()
     else
         fetch_images
     fi
+
+    # Verify the osinfo-db is up to date.
+    check_os_variant
 
     # Check if domain already exists
     domain_exists "${VMNAME}"
